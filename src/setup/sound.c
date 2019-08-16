@@ -16,7 +16,11 @@
 
 #include <stdlib.h>
 
+#ifdef __EMSCRIPTEN__
+#include "SDL2/SDL_mixer.h"
+#else
 #include "SDL_mixer.h"
+#endif
 
 #include "textscreen.h"
 #include "m_config.h"
@@ -60,7 +64,11 @@ static int sfxVolume = 8;
 static int musicVolume = 8;
 static int voiceVolume = 15;
 static int show_talk = 0;
+#ifdef __EMSCRIPTEN__
+static int use_libsamplerate = 1;
+#else
 static int use_libsamplerate = 0;
+#endif
 static float libsamplerate_scale = 0.65;
 
 static char *music_pack_path = NULL;

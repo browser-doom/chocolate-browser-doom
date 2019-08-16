@@ -25,6 +25,10 @@
 #include "txt_separator.h"
 #include "txt_window.h"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 #define HELP_KEY KEY_F1
 #define MAXWINDOWS 128
 
@@ -309,6 +313,9 @@ void TXT_DispatchEvents(void)
 
 void TXT_ExitMainLoop(void)
 {
+#ifdef __EMSCRIPTEN__
+    emscripten_cancel_main_loop();
+#endif
     main_loop_running = 0;
 }
 
@@ -352,12 +359,8 @@ void TXT_SetPeriodicCallback(TxtIdleCallback callback,
     periodic_callback_period = period;
 }
 
-void TXT_GUIMainLoop(void)
+void TXT_GUIMainLoopInner(void)
 {
-    main_loop_running = 1;
-
-    while (main_loop_running)
-    {
         TXT_DispatchEvents();
 
         // After the last window is closed, exit the loop
@@ -365,7 +368,7 @@ void TXT_GUIMainLoop(void)
         if (num_windows <= 0)
         {
             TXT_ExitMainLoop();
-            continue;
+            return;
         }
 
         TXT_DrawDesktop();
@@ -381,6 +384,21 @@ void TXT_GUIMainLoop(void)
 
             periodic_callback(periodic_callback_data);
         }
+
+}
+
+
+void TXT_GUIMainLoop(void)
+{
+    main_loop_running = 1;
+
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(TXT_GUIMainLoopInner, 0, 0);
+#else
+    while (main_loop_running)
+    {
+        TXT_GUIMainLoopInner();
     }
+#endif
 }
 

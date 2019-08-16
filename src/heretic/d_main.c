@@ -45,6 +45,11 @@
 #include "w_main.h"
 #include "v_video.h"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
+
 #define CT_KEY_GREEN    'g'
 #define CT_KEY_YELLOW   'y'
 #define CT_KEY_RED      'r'
@@ -226,6 +231,33 @@ boolean D_GrabMouseCallback(void)
     return (gamestate == GS_LEVEL) && !demoplayback && !advancedemo;
 }
 
+void D_RunFrame(void) {
+    // Frame syncronous IO operations
+    I_StartFrame();
+
+    // Process one or more tics
+    // Will run at least one tic
+    TryRunTics();
+
+    // Move positional sounds
+    S_UpdateSounds(players[consoleplayer].mo);
+    D_Display();
+}
+
+#ifdef __EMSCRIPTEN__
+EMSCRIPTEN_KEEPALIVE
+void D_SetLoopIter(void)
+{
+	emscripten_set_main_loop(D_RunFrame, 0, 0);
+}
+
+EMSCRIPTEN_KEEPALIVE
+void D_CancelLoopIter(void)
+{
+	emscripten_cancel_main_loop();
+}
+#endif
+
 //---------------------------------------------------------------------------
 //
 // PROC D_DoomLoop
@@ -242,23 +274,21 @@ void D_DoomLoop(void)
     }
     I_GraphicsCheckCommandLine();
     I_SetGrabMouseCallback(D_GrabMouseCallback);
+
+#ifdef __EMSCRIPTEN__
+	D_SetLoopIter();
+	I_AtExit(D_CancelLoopIter, true);
+#endif
     I_InitGraphics();
 
     main_loop_started = true;
 
+#ifndef __EMSCRIPTEN__
     while (1)
     {
-        // Frame syncronous IO operations
-        I_StartFrame();
-
-        // Process one or more tics
-        // Will run at least one tic
-        TryRunTics();
-
-        // Move positional sounds
-        S_UpdateSounds(players[consoleplayer].mo);
-        D_Display();
+		D_RunFrame();
     }
+#endif
 }
 
 /*
@@ -867,6 +897,9 @@ void D_DoomMain(void)
     }
 #endif
 
+#ifdef __EMSCRIPTEN__
+	M_SetConfigDir("/data/");
+#else
     if (cdrom)
     {
         M_SetConfigDir(DEH_String("c:\\heretic.cd"));
@@ -875,6 +908,7 @@ void D_DoomMain(void)
     {
         M_SetConfigDir(NULL);
     }
+#endif
 
     // Load defaults before initing other systems
     DEH_printf("M_LoadDefaults: Load system defaults.\n");

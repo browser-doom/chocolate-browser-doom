@@ -110,8 +110,8 @@ int video_display = 0;
 
 // Screen width and height, from configuration file.
 
-int window_width = 800;
-int window_height = 600;
+int window_width = 640;
+int window_height = 480;
 
 // Fullscreen mode, 0x0 for SDL_WINDOW_FULLSCREEN_DESKTOP.
 
@@ -123,7 +123,11 @@ static int max_scaling_buffer_pixels = 16000000;
 
 // Run in full screen mode?  (int type for config code)
 
+#ifdef __EMSCRIPTEN__
+int fullscreen = false;
+#else
 int fullscreen = true;
+#endif
 
 // Aspect ratio correction mode
 
@@ -1157,7 +1161,9 @@ static void SetVideoMode(void)
 
     // In windowed mode, the window can be resized while the game is
     // running.
+#ifndef __EMSCRIPTEN__
     window_flags = SDL_WINDOW_RESIZABLE;
+#endif
 
     // Set the highdpi flag - this makes a big difference on Macs with
     // retina displays, especially when using small window sizes.
@@ -1406,10 +1412,12 @@ void I_InitGraphics(void)
     // setting the screen mode, so that the game doesn't start immediately
     // with the player unable to see anything.
 
+#ifndef __EMSCRIPTEN__
     if (fullscreen && !screensaver_mode)
     {
         SDL_Delay(startup_delay);
     }
+#endif
 
     // The actual 320x200 canvas that we draw to. This is the pixel buffer of
     // the 8-bit paletted screen buffer that gets blit on an intermediate

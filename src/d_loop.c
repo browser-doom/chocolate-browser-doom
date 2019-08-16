@@ -733,7 +733,7 @@ void TryRunTics (void)
 	NetUpdate ();
 
         lowtic = GetLowTic();
-
+#ifndef __EMSCRIPTEN__
 	if (lowtic < gametic/ticdup)
 	    I_Error ("TryRunTics: lowtic < gametic");
 
@@ -750,6 +750,7 @@ void TryRunTics (void)
 
             I_Sleep(1);
         }
+#endif	
     }
 
     // run the count * ticdup dics

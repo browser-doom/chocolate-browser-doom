@@ -38,6 +38,10 @@
 #include "multiplayer.h"
 #include "sound.h"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 #define WINDOW_HELP_URL "https://www.chocolate-doom.org/setup"
 
 static const int cheat_sequence[] =
@@ -125,8 +129,12 @@ static void DoQuit(void *widget, void *dosave)
     {
         M_SaveDefaults();
     }
-
     TXT_Shutdown();
+
+#if __EMSCRIPTEN__
+	emscripten_cancel_main_loop();
+	EM_ASM("Module['exitSetup']();");
+#endif
 
     exit(0);
 }
@@ -172,6 +180,10 @@ static void LaunchDoom(void *unused1, void *unused2)
 
     // Launch Doom
 
+#ifdef __EMSCRIPTEN__
+	// TODO: Pass correct args
+	emscripten_cancel_main_loop();
+#endif
     exec = NewExecuteContext();
     PassThroughArguments(exec);
     ExecuteDoom(exec);
@@ -229,6 +241,7 @@ void MainMenu(void)
         TXT_NewButton2("Compatibility",
                        (TxtWidgetSignalFunc) CompatibilitySettings, NULL),
         GetLaunchButton(),
+#ifndef __EMSCRIPTEN__
         TXT_NewStrut(0, 1),
         TXT_NewButton2("Start a Network Game",
                        (TxtWidgetSignalFunc) StartMultiGame, NULL),
@@ -236,15 +249,22 @@ void MainMenu(void)
                        (TxtWidgetSignalFunc) JoinMultiGame, NULL),
         TXT_NewButton2("Multiplayer Configuration",
                        (TxtWidgetSignalFunc) MultiplayerConfig, NULL),
+#endif
         NULL);
 
     quit_action = TXT_NewWindowAction(KEY_ESCAPE, "Quit");
+#ifndef __EMSCRIPTEN__
     warp_action = TXT_NewWindowAction(KEY_F2, "Warp");
+#endif
     TXT_SignalConnect(quit_action, "pressed", QuitConfirm, NULL);
+#ifndef __EMSCRIPTEN__
     TXT_SignalConnect(warp_action, "pressed",
                       (TxtWidgetSignalFunc) WarpMenu, NULL);
+#endif
     TXT_SetWindowAction(window, TXT_HORIZ_LEFT, quit_action);
+#ifndef __EMSCRIPTEN__
     TXT_SetWindowAction(window, TXT_HORIZ_CENTER, warp_action);
+#endif
 
     TXT_SetKeyListener(window, MainMenuKeyPress, NULL);
 }
@@ -255,7 +275,11 @@ void MainMenu(void)
 
 static void InitConfig(void)
 {
+#ifdef __EMSCRIPTEN__
+	M_SetConfigDir("/data/");
+#else
     M_SetConfigDir(NULL);
+#endif
     InitBindings();
 
     SetChatMacroDefaults();

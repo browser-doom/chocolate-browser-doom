@@ -29,10 +29,12 @@ set(DEDSERV_FILES
     net_structrw.c      net_structrw.h
     z_native.c          z_zone.h)
 
-add_executable("${PROGRAM_PREFIX}server" WIN32 ${COMMON_SOURCE_FILES} ${DEDSERV_FILES})
-target_include_directories("${PROGRAM_PREFIX}server"
-                           PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../")
-target_link_libraries("${PROGRAM_PREFIX}server" SDL2::SDL2main SDL2::net)
+if(NOT EMSCRIPTEN)
+	add_executable("${PROGRAM_PREFIX}server" WIN32 ${COMMON_SOURCE_FILES} ${DEDSERV_FILES})
+	target_include_directories("${PROGRAM_PREFIX}server"
+	                           PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../")
+	target_link_libraries("${PROGRAM_PREFIX}server" SDL2::SDL2main SDL2::net)
+endif()
 
 # Source files used by the game binaries (chocolate-doom, etc.)
 
@@ -121,10 +123,7 @@ set(DEHACKED_SOURCE_FILES
 set(SOURCE_FILES ${COMMON_SOURCE_FILES} ${GAME_SOURCE_FILES})
 set(SOURCE_FILES_WITH_DEH ${SOURCE_FILES} ${DEHACKED_SOURCE_FILES})
 
-set(EXTRA_LIBS SDL2::SDL2main SDL2::SDL2 SDL2::mixer SDL2::net textscreen pcsound opl)
-if(SAMPLERATE_FOUND)
-    list(APPEND EXTRA_LIBS samplerate::samplerate)
-endif()
+set(EXTRA_LIBS SDL2::SDL2main SDL2::SDL2 SDL2::mixer SDL2::net textscreen pcsound opl samplerate)
 if(PNG_FOUND)
     list(APPEND EXTRA_LIBS PNG::PNG)
 endif()
@@ -137,6 +136,10 @@ endif()
 
 target_include_directories("${PROGRAM_PREFIX}doom" PRIVATE ${GAME_INCLUDE_DIRS})
 target_link_libraries("${PROGRAM_PREFIX}doom" doom ${EXTRA_LIBS})
+
+if(EMSCRIPTEN)
+	target_link_options("${PROGRAM_PREFIX}doom" PRIVATE "SHELL:-s DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\"BROWSERFS\"] -s EXTRA_EXPORTED_RUNTIME_METHODS=[\"FS\",\"UTF8ToString\"] --js-library ${CMAKE_CURRENT_SOURCE_DIR}/library_browserfs.js -s MODULARIZE=1 -s EXPORT_NAME=\"Doom\"")
+endif()
 
 if(MSVC)
     set_target_properties("${PROGRAM_PREFIX}doom" PROPERTIES
@@ -152,6 +155,10 @@ endif()
 target_include_directories("${PROGRAM_PREFIX}heretic" PRIVATE ${GAME_INCLUDE_DIRS})
 target_link_libraries("${PROGRAM_PREFIX}heretic" heretic ${EXTRA_LIBS})
 
+if(EMSCRIPTEN)
+	target_link_options("${PROGRAM_PREFIX}heretic" PRIVATE "SHELL:-s DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\"BROWSERFS\"] -s EXTRA_EXPORTED_RUNTIME_METHODS=[\"FS\",\"UTF8ToString\"] --js-library ${CMAKE_CURRENT_SOURCE_DIR}/library_browserfs.js -s MODULARIZE=1 -s EXPORT_NAME=\"Heretic\"")
+endif()
+
 if(MSVC)
     set_target_properties("${PROGRAM_PREFIX}heretic" PROPERTIES
                           LINK_FLAGS "/MANIFEST:NO")
@@ -166,6 +173,10 @@ endif()
 target_include_directories("${PROGRAM_PREFIX}hexen" PRIVATE ${GAME_INCLUDE_DIRS})
 target_link_libraries("${PROGRAM_PREFIX}hexen" hexen ${EXTRA_LIBS})
 
+if(EMSCRIPTEN)
+	target_link_options("${PROGRAM_PREFIX}hexen" PRIVATE "SHELL:-s DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\"BROWSERFS\"] -s EXTRA_EXPORTED_RUNTIME_METHODS=[\"FS\",\"UTF8ToString\"] --js-library ${CMAKE_CURRENT_SOURCE_DIR}/library_browserfs.js -s MODULARIZE=1 -s EXPORT_NAME=\"Hexen\"")
+endif()
+
 if(MSVC)
     set_target_properties("${PROGRAM_PREFIX}hexen" PROPERTIES
                           LINK_FLAGS "/MANIFEST:NO")
@@ -179,6 +190,10 @@ endif()
 
 target_include_directories("${PROGRAM_PREFIX}strife" PRIVATE ${GAME_INCLUDE_DIRS})
 target_link_libraries("${PROGRAM_PREFIX}strife" strife ${EXTRA_LIBS})
+
+if(EMSCRIPTEN)
+	target_link_options("${PROGRAM_PREFIX}strife" PRIVATE "SHELL:-s DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\"BROWSERFS\"] -s EXTRA_EXPORTED_RUNTIME_METHODS=[\"FS\",\"UTF8ToString\"] --js-library ${CMAKE_CURRENT_SOURCE_DIR}/library_browserfs.js -s MODULARIZE=1 -s EXPORT_NAME=\"Strife\"")
+endif()
 
 if(MSVC)
     set_target_properties("${PROGRAM_PREFIX}strife" PROPERTIES
@@ -212,17 +227,23 @@ target_include_directories("${PROGRAM_PREFIX}setup"
                            PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../")
 target_link_libraries("${PROGRAM_PREFIX}setup" SDL2::SDL2main SDL2::SDL2 SDL2::mixer SDL2::net setup textscreen)
 
+if(EMSCRIPTEN)
+	target_link_options("${PROGRAM_PREFIX}setup" PRIVATE "SHELL:-s DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[\"BROWSERFS\"] -s EXTRA_EXPORTED_RUNTIME_METHODS=[\"FS\",\"UTF8ToString\"] --js-library ${CMAKE_CURRENT_SOURCE_DIR}/library_browserfs.js -s MODULARIZE=1 -s EXPORT_NAME=\"Setup\"")
+endif()
+
 if(MSVC)
     set_target_properties("${PROGRAM_PREFIX}setup" PROPERTIES
                           LINK_FLAGS "/MANIFEST:NO")
 endif()
 
-add_executable(midiread midifile.c z_native.c i_system.c m_argv.c m_misc.c d_iwad.c deh_str.c m_config.c)
-target_compile_definitions(midiread PRIVATE "-DTEST")
-target_include_directories(midiread PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../")
-target_link_libraries(midiread SDL2::SDL2main SDL2::SDL2)
-
-add_executable(mus2mid mus2mid.c memio.c z_native.c i_system.c m_argv.c m_misc.c d_iwad.c deh_str.c m_config.c)
-target_compile_definitions(mus2mid PRIVATE "-DSTANDALONE")
-target_include_directories(mus2mid PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../")
-target_link_libraries(mus2mid SDL2::SDL2main SDL2::SDL2)
+if(NOT EMSCRIPTEN)
+	add_executable(midiread midifile.c z_native.c i_system.c m_argv.c m_misc.c d_iwad.c deh_str.c m_config.c)
+	target_compile_definitions(midiread PRIVATE "-DTEST")
+	target_include_directories(midiread PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../")
+	target_link_libraries(midiread SDL2::SDL2main SDL2::SDL2)
+	
+	add_executable(mus2mid mus2mid.c memio.c z_native.c i_system.c m_argv.c m_misc.c d_iwad.c deh_str.c m_config.c)
+	target_compile_definitions(mus2mid PRIVATE "-DSTANDALONE")
+	target_include_directories(mus2mid PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/../")
+	target_link_libraries(mus2mid SDL2::SDL2main SDL2::SDL2)
+endif()

@@ -76,6 +76,10 @@
 
 #include "d_main.h"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 //
 // D-DoomLoop()
 // Not a globally visible function,
@@ -389,10 +393,11 @@ boolean D_GrabMouseCallback(void)
     return (gamestate == GS_LEVEL) && !demoplayback && !advancedemo;
 }
 
+
 //
 //  D_RunFrame
 //
-void D_RunFrame()
+void D_RunFrame(void)
 {
     int nowtime;
     int tics;
@@ -440,6 +445,23 @@ void D_RunFrame()
     }
 }
 
+#ifdef __EMSCRIPTEN__
+
+EMSCRIPTEN_KEEPALIVE
+void D_SetLoopIter(void)
+{
+    emscripten_set_main_loop(D_RunFrame, 0, 0);
+}
+
+EMSCRIPTEN_KEEPALIVE
+void D_CancelLoopIter(void)
+{
+    emscripten_cancel_main_loop();
+}
+
+#endif
+
+
 //
 //  D_DoomLoop
 //
@@ -462,6 +484,10 @@ void D_DoomLoop (void)
     I_SetWindowTitle(gamedescription);
     I_GraphicsCheckCommandLine();
     I_SetGrabMouseCallback(D_GrabMouseCallback);
+#ifdef __EMSCRIPTEN__
+	D_SetLoopIter();
+	I_AtExit(D_CancelLoopIter, true);
+#endif
     I_InitGraphics();
     EnableLoadingDisk();
 
@@ -477,10 +503,13 @@ void D_DoomLoop (void)
         wipegamestate = gamestate;
     }
 
+
+#ifndef __EMSCRIPTEN__
     while (1)
     {
         D_RunFrame();
     }
+#endif
 }
 
 
@@ -1206,6 +1235,7 @@ static void G_CheckDemoStatusAtExit (void)
     G_CheckDemoStatus();
 }
 
+
 //
 // D_DoomMain
 //
@@ -1216,6 +1246,7 @@ void D_DoomMain (void)
     char demolumpname[9];
     int numiwadlumps;
 
+	I_AtExit(D_CancelLoopIter, true);
     I_AtExit(D_Endoom, false);
 
     // print banner
@@ -1367,7 +1398,11 @@ void D_DoomMain (void)
     {
         // Auto-detect the configuration dir.
 
+#ifdef __EMSCRIPTEN__
+		M_SetConfigDir("/data/");
+#else
         M_SetConfigDir(NULL);
+#endif
     }
 
     //!

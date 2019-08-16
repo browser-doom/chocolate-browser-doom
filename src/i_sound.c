@@ -18,7 +18,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef __EMSCRIPTEN__
+#include "SDL2/SDL_mixer.h"
+#else
 #include "SDL_mixer.h"
+#endif
 
 #include "config.h"
 #include "doomtype.h"
@@ -31,7 +35,7 @@
 
 // Sound sample rate to use for digital output (Hz)
 
-int snd_samplerate = 44100;
+int snd_samplerate = 48000;
 
 // Maximum number of bytes to dedicate to allocated sound effects.
 // (Default: 64MB)
@@ -41,7 +45,7 @@ int snd_cachesize = 64 * 1024 * 1024;
 // Config variable that controls the sound buffer size.
 // We default to 28ms (1000 / 35fps = 1 buffer per tic).
 
-int snd_maxslicetime_ms = 28;
+int snd_maxslicetime_ms = 28 * 4;
 
 // External command to invoke to play back music.
 
@@ -99,7 +103,9 @@ static int snd_mport = 0;
 static sound_module_t *sound_modules[] = 
 {
     &sound_sdl_module,
+#ifndef __EMSCRIPTEN__
     &sound_pcsound_module,
+#endif
     NULL,
 };
 
@@ -107,7 +113,9 @@ static sound_module_t *sound_modules[] =
 
 static music_module_t *music_modules[] =
 {
+#ifndef __EMSCRIPTEN__
     &music_sdl_module,
+#endif
     &music_opl_module,
     NULL,
 };

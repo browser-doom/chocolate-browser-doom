@@ -19,7 +19,11 @@
 #include <stdlib.h>
 
 #include "SDL.h"
+#ifdef __EMSCRIPTEN__
+#include "SDL2/SDL_mixer.h"
+#elif
 #include "SDL_mixer.h"
+#endif
 
 #include "pcsound.h"
 #include "pcsound_internal.h"
@@ -200,7 +204,7 @@ static int PCSound_SDL_Init(pcsound_callback_func callback_func)
 
         slicesize = GetSliceSize();
 
-        if (Mix_OpenAudio(pcsound_sample_rate, AUDIO_S16SYS, 2, slicesize) < 0)
+        if (Mix_OpenAudioDevice(pcsound_sample_rate, AUDIO_S16SYS, 2, slicesize, NULL, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE) < 0)
         {
             fprintf(stderr, "Error initializing SDL_mixer: %s\n", Mix_GetError());
 

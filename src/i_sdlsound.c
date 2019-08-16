@@ -24,7 +24,11 @@
 #include <string.h>
 #include <assert.h>
 #include "SDL.h"
+#ifdef __EMSCRIPTEN__
+#include "SDL2/SDL_mixer.h"
+#else
 #include "SDL_mixer.h"
+#endif
 
 #ifdef HAVE_LIBSAMPLERATE
 #include <samplerate.h>
@@ -77,7 +81,11 @@ static allocated_sound_t *allocated_sounds_head = NULL;
 static allocated_sound_t *allocated_sounds_tail = NULL;
 static int allocated_sounds_size = 0;
 
+#ifdef __EMSCRIPTEN__
+int use_libsamplerate = 5;
+#else
 int use_libsamplerate = 0;
+#endif
 
 // Scale factor used when converting libsamplerate floating point numbers
 // to integers. Too high means the sounds can clip; too low means they
@@ -808,7 +816,7 @@ static void GetSfxLumpName(sfxinfo_t *sfx, char *buf, size_t buf_len)
     }
 }
 
-#ifdef HAVE_LIBSAMPLERATE
+#if defined(HAVE_LIBSAMPLERATE)
 
 // Preload all the sound effects - stops nasty ingame freezes
 
@@ -1101,7 +1109,7 @@ static boolean I_SDL_InitSound(boolean _use_sfx_prefix)
         return false;
     }
 
-    if (Mix_OpenAudio(snd_samplerate, AUDIO_S16SYS, 2, GetSliceSize()) < 0)
+    if (Mix_OpenAudioDevice(snd_samplerate, AUDIO_S16SYS, 2, GetSliceSize(), NULL, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE) < 0)
     {
         fprintf(stderr, "Error initialising SDL_mixer: %s\n", Mix_GetError());
         return false;
